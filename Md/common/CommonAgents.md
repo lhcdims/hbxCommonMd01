@@ -179,3 +179,58 @@ C2.2 如果 chief-of-staff 无法解决，才向 main agent 请求帮助。
 C2.3 main agent 无法解决的，才向人类请求帮助。
 
 C2.4 人类的介入应该是最后手段，不是第一步。
+
+C3. 删除操作铁律（2026-10-08 拍板）
+
+C3.1 删除文件前必须：
+1. 先问 user 确认
+2. 确认文件是否需要保留
+3. 评估删除风险
+
+C3.2 正确流程：
+- 不需要 git 的 → 加 .gitignore
+- 需要删除的 → 先确认，再删除
+- 任何删除操作 → 重大风险，需谨慎
+
+C3.3 思考后再行动：
+- user 说「不 clean」→ 先问是哪些文件，不要直接删除
+- 不确定用途 → 先问清楚
+- 重大操作 → 说明风险，等 user 确认
+
+C3.4 教训：2026-10-08 错误地删除了 `server` 文件夹（需要 git 版本控制），无法恢复。
+
+
+
+
+
+D. Todo 文件的格式
+
+
+
+D1. 由于流程上，main agent 把工作交给 chief-of-staff 后，chief-of-staff 需要写好 todo 文件，经过 main agent 确认后，才能分派工作给 uni-agent 开始编程。因此，为了防止某些流程被跳过，todo 文件需要有文件头！
+
+
+
+D2. 文件头内容：
+
+
+D2.1 todo 文件最后由 chief-of-staff agent 修改日期时间：ccyy/mm/dd hh:mm
+
+
+D2.2 todo 文件最后由 main agent 审批日期时间：ccyy/mm/dd hh:mm
+
+
+
+D3. 文件头的负责单位：
+
+
+D3.1 chief-of-staff agent 需要每次修改 todo 文件后，都要修改 D2.1 所述的修改日期时间，然后回覆 main agent 审批
+
+
+D3.2 main agent 审批时，如果有问题，让 chief-of-staff 修改该 todo 文件。如果没有问题，main agent 修改 D2.2 所述审批日期时间。
+
+
+
+D4. uni-agent 读取某 todo 文件，并且开始编程前，必须查看 D2.2 所述审批日期时间，是否大于 D2.1 所述修改日期时间！如果否，请回覆 chief-of-staff，并且不要开始开发！
+
+

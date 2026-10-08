@@ -86,15 +86,17 @@ B3.1 接收 main agent 的任务。
 
 B3.2 创建或更新对应的 todo md 文件。
 
-B3.3 将任务分配给 uni-agent（写代码）。
+B3.3 写好 todo 文件后，让 main agent 查看 todo 文件，main agent 确认没有问题后，才能继续 B3.4。期间，chief-of-staff 可能需要和 main agent 进行多轮对话，确定 todo 文件符合 main agent 需求！
 
-B3.4 uni-agent 完成后，分配给 reviewer（写测试）。
+B3.4 将任务分配给 uni-agent（写代码）。
 
-B3.5 reviewer 运行测试，汇报结果。
+B3.5 uni-agent 完成后，分配给 reviewer（写测试）。
 
-B3.6 根据测试结果，分配 uni-agent 修复 bug 或继续其他工作。
+B3.6 reviewer 运行测试，汇报结果。
 
-B3.7 完成后向 main agent 汇报。
+B3.7 根据测试结果，分配 uni-agent 修复 bug 或继续其他工作。
+
+B3.8 完成后向 main agent 汇报。
 
 
 
