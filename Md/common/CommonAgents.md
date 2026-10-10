@@ -199,6 +199,45 @@ C3.3 思考后再行动：
 
 C3.4 教训：2026-10-08 错误地删除了 `server` 文件夹（需要 git 版本控制），无法恢复。
 
+C3.5 异步回复铁律（2026-10-08 拍板）
+
+C3.5.1 错误模式：
+- 发消息给 chief-of-staff 后，收到回复就直接告诉用户「请 chief-of-staff 做什么」
+- 这还是异步——工作没有闭环
+
+C3.5.2 正确模式：
+- 发消息给 chief-of-staff → 等待回复 → chief-of-staff 回复内容 → 我处理 → 继续等 chief-of-staff 的下一步回复 → 所有链条完成 → 最后才回复用户
+
+C3.5.3 具体例子：
+- ❌ 我发消息给 chief-of-staff → 它回复「需要审批 todo001」→ 我直接告诉你「请 chief-of-staff 发 todo001」
+- ✅ 我发消息给 chief-of-staff → 它回复 todo001 内容 → 我审批 → chief-of-staff 继续执行 → 全部完成后我才回复你
+
+C3.5.4 sessions_send 返回 accepted ≠ 可以告诉用户
+
+C3.5.5 正确的等待模式：
+- 发 sessions_send 后，不回复用户
+- 等 chief-of-staff 的回复（inter-session message）
+- 收到回复后，继续处理或等下一条
+- 直到链条完全闭合，才第一次回复用户
+
+C3.5.6 技术实现：
+- sessions_send 返回 accepted，只是消息被接收
+- chief-of-staff 实际工作后才会回复 session
+- 收到回复 → 检查是否需要继续
+- 需要继续 → 发下一条 → 继续等
+- 不需要继续 → 链条闭合 → 回复用户
+
+C3.5.7 方案 2 的具体执行：
+1. 发 sessions_send 后，立即【不回复用户】
+2. 等 chief-of-staff 回复（inter-session message）
+3. 收到回复 → 处理 → 判断是否需要继续
+4. 需要继续 → 发下一条 sessions_send → 继续等
+5. 不需要继续 → 链条闭合 → 才回复用户
+
+C3.5.8 判断标准：
+- 我刚才发了 sessions_send，chief-of-staff 还没回复 → 我应该【继续等待】，不应该回复用户
+- 我是否在等 chief-of-staff 的回复？→ 是 → 继续等！
+
 
 
 
