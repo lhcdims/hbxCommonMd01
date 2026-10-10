@@ -7,6 +7,39 @@ description: "HBuilderX CLI uni-app x 自动测试：环境准备、cli uniapp.t
 
 uni-app x 项目自动测试（CLI）标准流程。
 
+## 快速参考
+
+### 标准测试命令
+```powershell
+C:\HBuilderX\cli.exe uniapp.test app-android --project "<项目路径>" --vapor true
+```
+
+### 只跑单个测试文件
+在 `jest.config.js` 设置 `testMatch`：
+```js
+module.exports = {
+  testMatch: ['**/autotest/p005-delete-permanent.test.js'],
+  testTimeout: 60000,
+}
+```
+
+### 测试结果位置
+```
+AppData\Roaming\HBuilder X\hbuilderx-for-uniapp-test\<项目>\android\<device-id>-<timestamp>.json
+```
+
+### 成功输出标志
+```
+Test Suites: 1 passed, 1 total
+Tests:       3 passed, 3 total
+Time:        xx s
+测试用例总计：1，运行通过 1，运行失败 0，运行异常 0
+```
+
+---
+
+## 详细流程
+
 ## Trigger
 
 收到「跑测试」「自动测试」「cli uniapp.test」或类似请求时触发。
