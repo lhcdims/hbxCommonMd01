@@ -1,147 +1,110 @@
 ---
 name: "crossagentcommunication"
-description: "Enable communication between two OpenClaw agents using sessions_send with a persistent session key, similar to uni-agent's --continue true flag."
+description: "Delegate work between OpenClaw agents with sessions_send: pick the persistent session key, block until the reply arrives, report only the final result."
 ---
 
-# CrossAgentCommunication Skill
+# CrossAgentCommunication
 
-Enable communication between two OpenClaw agents (e.g., main agent and a subordinate/assistant agent) using a persistent session.
+Coordinate with another OpenClaw agent over a persistent session with `sessions_send`.
 
-## When to Use
+## Trigger
 
-- You need to coordinate with another agent (e.g., chief-of-staff, assistant, coordinator)
-- You want the target agent to remember context across multiple message exchanges
-- You want to delegate tasks to another agent while maintaining conversation continuity
+- You must delegate work to another agent and need its answer before you continue.
+- You need a chain: main → team-chief-of-staff → leaf agent.
 
-## Core Concept
+## Synchronous wait pattern
 
-OpenClaw agents communicate via the `sessions_send` tool using a **persistent session key**. This is analogous to `uni-agent`'s `--continue true` flag — the session maintains context across multiple exchanges.
-
-## Prerequisites
-
-- Two or more OpenClaw agents configured on the same Gateway
-- Access to the `sessions_send` tool
-- Optionally: Telegram bot channel configured (if you want to expose dialogue to users via Telegram)
-
-## Steps
-
-### Step 1: Identify the Target Agent ID
-
-List all configured agents to find the target agent's ID:
-
-```bash
-gateway agents list
-```
-
-Or via OpenClaw dashboard (Agents section).
-
-**Example:** `chief-of-staff`, `assistant`, `coordinator`
-
-### Step 2: Choose a Session Key Pattern
-
-Use a consistent session key format:
+`sessions_send` is synchronous-reply only. If you call it and then reply to the user immediately, the subordinate's reply lands after your turn closes and the chain breaks. Set `timeoutSeconds > 0` so the call blocks until the reply arrives.
 
 ```
-agent:<target-agent-id>:<collaboration-name>
+sessions_send({
+  sessionKey: "agent:team-chief-of-staff:main",
+  message: "请执行任务",
+  timeoutSeconds: 900  // blocks until the reply arrives
+})
+// → returns { status: "ok", reply: "结果" }
 ```
 
-Where `<collaboration-name>` is a descriptive name for this collaboration (e.g., `main`, `collaboration`).
+Always send with `timeoutSeconds: 900` (15 min) — a shorter timeout cuts the chain off mid-task and the resend duplicates work. The timeout is a maximum wait, not a delay: the call returns the moment the reply arrives.
 
-**Example:** `agent:chief-of-staff:main`
+Report only the final result to the user; intermediate status is not reported. If the subordinate asks a question, answer it directly and let the chain continue.
 
-### Step 3: Send Messages with sessions_send
+### Chain example
 
-Use the `sessions_send` tool with the identical `sessionKey` every time:
+```
+main → team-chief-of-staff：请分配任务给 team-reviewer（timeout:900）
+     team-chief-of-staff → team-reviewer：请测试（timeout:900）
+          team-reviewer → team-chief-of-staff：测试完成（chief-of-staff continues）
+     team-chief-of-staff → team-reviewer：（next instruction or chain closes）
+team-chief-of-staff → main：任务完成 ✅
+```
+
+After sending to team-reviewer, team-chief-of-staff does not stop to report to main — it keeps waiting for team-reviewer's reply.
+
+## Step 1 — Identify the target agent id
+
+Call the `agents_list` tool. It returns only the agents the current agent may delegate to, so main sees `team-chief-of-staff` and team-chief-of-staff sees the leaf agents — route through the chain rather than expecting a direct call to a leaf.
+
+If the target is missing from that list, read `agents.entries` in `C:\Users\lichiukenneth\.openclaw\openclaw.json`; that block holds the exact agent ids, their `subagents.allowAgents`, and the Telegram `bindings`. The id string there is what goes in the session key — do not shorten or rename it.
+
+## Step 2 — Choose the session key
+
+Run `sessions_list` and reuse a key that already exists for the target agent, copied verbatim. Both shapes exist for Telegram-bound agents:
+
+```
+agent:<agent-id>:telegram:direct:<user-id>   e.g. agent:team-reviewer:telegram:direct:942566572
+agent:<agent-id>:main                          e.g. agent:team-chief-of-staff:main
+```
+
+Choosing a shape that has no session for that agent creates a duplicate session and the target starts with empty context.
+
+## Step 3 — Send, then wait
+
+Use the **identical** `sessionKey` on every message to the same agent — even a case difference creates a new session.
 
 ```
 Tool: sessions_send
 {
   "agentId": "<target-agent-id>",
-  "sessionKey": "agent:<target-agent-id>:<collaboration-name>",
+  "sessionKey": "agent:<target-agent-id>:main",
   "message": "<your-message-content>",
-  "timeoutSeconds": 60
+  "timeoutSeconds": 900
 }
 ```
 
-**Key rule:** Use the **identical** `sessionKey` for every message to the same agent. Even a slight difference creates a new session.
+## Step 4 — Continue the same conversation
 
-### Step 4: Receive Responses
+Call `sessions_send` again with the same `sessionKey`; the target remembers prior context.
 
-The response includes:
-- `reply`: The target agent's reply text
-- `sessionKey`: Confirms which session was targeted
-- `runId`: Unique run identifier
-
-### Step 5: Continue the Conversation
-
-Call `sessions_send` again with the **same `sessionKey`** to continue. The target agent remembers previous context.
-
-**Example flow:**
 ```
 // Turn 1
-{"agentId": "chief-of-staff", "sessionKey": "agent:chief-of-staff:main", "message": "Hello, I need information about the weather."}
+{"agentId": "team-chief-of-staff", "sessionKey": "agent:team-chief-of-staff:main", "message": "Hello, I need information about the weather."}
 
 // Turn 2
-{"agentId": "chief-of-staff", "sessionKey": "agent:chief-of-staff:main", "message": "What about tomorrow?"}
-// chief-of-staff remembers "weather" context from Turn 1
+{"agentId": "team-chief-of-staff", "sessionKey": "agent:team-chief-of-staff:main", "message": "What about tomorrow?"}
+// team-chief-of-staff remembers "weather" context from Turn 1
 ```
 
-### Step 6: View Dialogue History
+The response carries `reply`, `sessionKey`, and `runId`.
 
-View session dialogues in:
-- **OpenClaw dashboard** → Select target agent → Main Session
-- **Sessions history** → Use `sessions_search` or `sessions_history` tools
+## Step 5 — Read the dialogue
 
-## Viewing Dialogue in Telegram (Optional)
+`sessions_history` with the target's `sessionKey`, or `sessions_search` for a phrase. The dashboard shows the same transcript under the target agent.
 
-If you want users to see agent-to-agent dialogue in Telegram:
+## Relaying dialogue to a Telegram group (optional)
 
-1. Create a Telegram group with:
-   - The user
-   - The main agent's Telegram bot
-   - The subordinate agent's Telegram bot
-
-2. Configure routing so the main agent can see group messages (must be @mentioned)
-
-3. Relay strategy: When the subordinate agent responds, the main agent forwards relevant parts to the Telegram group using:
-
-```
-Tool: message
-{
-  "action": "send",
-  "channel": "telegram",
-  "target": "<group-chat-id>",
-  "message": "<content>"
-}
-```
-
-## Key Differences from uni-agent's --continue true
-
-| Aspect | uni-agent `--continue true` | OpenClaw sessions_send with sessionKey |
-|--------|----------------------------|---------------------------------------|
-| Mechanism | CLI flag | Tool parameter |
-| Context | Automatic when flag is set | Explicit via identical sessionKey |
-| Specification | `--continue true` argument | `sessionKey` field in tool call |
-| Session identification | Same CLI process | Session key string |
+To let users watch the exchange, put the user plus the main and subordinate bots in one Telegram group, set `requireMention` for that group so the main agent only reacts to its own mentions, and relay the relevant parts with `message(action="send", channel="telegram", target="<group-chat-id>")`.
 
 ## Troubleshooting
 
-**Problem:** Agent doesn't remember previous messages.
-**Solution:** Ensure you're using the **identical** `sessionKey` every time (check for whitespace or case differences).
+**`sessions_send` returns `Session creation publication owner is no longer current`.**
+The key shape does not match the target's context. Run `sessions_list` and reuse an existing key for that agent.
 
-**Problem:** `sessions_send` returns error or is unavailable.
-**Solution:** Check that `sessions_send` is available in your agent's tool list.
+**Target does not remember earlier messages.**
+The `sessionKey` differed between turns — compare it character by character.
 
-**Problem:** Response starts fresh every time.
-**Solution:** The target agent may have restarted. Start a new collaboration with a fresh `sessionKey`.
+**Response starts fresh every time.**
+The target restarted. Start a new collaboration with a fresh key.
 
-## Summary Checklist
-
-- [ ] Identify the target agent ID
-- [ ] Choose a consistent `sessionKey` pattern
-- [ ] Use `sessions_send` with identical `sessionKey` for all messages
-- [ ] View dialogue in OpenClaw dashboard if needed
-- [ ] Optionally relay to Telegram group for user visibility
-
----
-**Last updated:** 2026-10-06
+**`sessions_send` is not in the tool list.**
+Do not route agent-to-agent traffic through Telegram `message` sends; that publishes the exchange to a chat instead of the target agent.
