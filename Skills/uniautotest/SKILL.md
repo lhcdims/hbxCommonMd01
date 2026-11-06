@@ -11,21 +11,21 @@ uni-app x 项目自动测试（CLI）标准流程。
 
 ### 标准测试命令
 ```powershell
-C:\HBuilderX\cli.exe uniapp.test app-android --project "<项目路径>" --vapor true
+<HBX_CLI> uniapp.test app-android --project "<项目路径>" --vapor true
 ```
 
 ### 只跑单个测试文件
 在 `jest.config.js` 设置 `testMatch`：
 ```js
 module.exports = {
-  testMatch: ['**/autotest/p005-delete-permanent.test.js'],
+  testMatch: ['**/autotest/<测试文件名>.test.js'],
   testTimeout: 60000,
 }
 ```
 
 ### 测试结果位置
 ```
-AppData\Roaming\HBuilder X\hbuilderx-for-uniapp-test\<项目>\android\<device-id>-<timestamp>.json
+%APPDATA%\HBuilder X\hbuilderx-for-uniapp-test\<项目名>\android\<device-id>-<timestamp>.json
 ```
 
 ### 成功输出标志
@@ -53,9 +53,9 @@ Time:        xx s
 
 ## 环境特点
 
-- **测试框架**：`C:\HBuilderX\plugins\hbuilderx-for-uniapp-test-lib\node_modules\jest`
-- **Node 路径**：`C:\HBuilderX\plugins\node\node.exe`
-- **CLI**：`C:\HBuilderX\cli.exe`
+- **测试框架**：`<HBX_HOME>\plugins\hbuilderx-for-uniapp-test-lib\node_modules\jest`
+- **Node 路径**：`<HBX_HOME>\plugins\node\node.exe`
+- **CLI**：`<HBX_CLI>`
 - **项目 node_modules**（如有）会干扰测试，建议删除（见步骤 3）
 
 ## 测试命令
@@ -64,10 +64,10 @@ Time:        xx s
 
 ```powershell
 # 完整命令
-C:\HBuilderX\cli.exe uniapp.test app-android --project "C:\Users\lichiukenneth\Documents\HBuilderProjects\Learn\xLearnAiP005" --vapor true
+<HBX_CLI> uniapp.test app-android --project "<项目路径>" --vapor true
 
 # 如果已 cd 到 HBuilderX 安装目录，可以简写
-.\cli.exe uniapp.test app-android --project "C:\Users\lichiukenneth\Documents\HBuilderProjects\Learn\xLearnAiP005" --vapor true
+.\cli.exe uniapp.test app-android --project "<项目路径>" --vapor true
 ```
 
 > ⚠️ 使用 **PowerShell** 或 **cmd.exe** 均可，但不要用 Git Bash / WSL，会路径解析出错。
@@ -77,7 +77,7 @@ C:\HBuilderX\cli.exe uniapp.test app-android --project "C:\Users\lichiukenneth\D
 ### 步骤 1：确认设备和网络
 
 ```powershell
-& "C:\HBuilderX\plugins\launcher-tools\tools\adbs\adb.exe" devices
+& "<HBX_HOME>\plugins\launcher-tools\tools\adbs\adb.exe" devices
 ```
 
 确保设备在线，且手机和电脑在同一 WiFi 网络下。
@@ -110,7 +110,7 @@ Remove-Item -Force "package-lock.json"
 
 **检查**：
 ```powershell
-Test-Path "C:\Users\lichiukenneth\Documents\HBuilderProjects\Learn\xLearnAiP005\main.uts"
+Test-Path "<项目路径>\main.uts"
 ```
 
 **如果缺失，创建 `main.uts`**：
@@ -142,7 +142,7 @@ onLaunch(() => {
 
 ```powershell
 # 跑全部测试
-C:\HBuilderX\cli.exe uniapp.test app-android --project "<项目根目录>" --vapor true
+<HBX_CLI> uniapp.test app-android --project "<项目路径>" --vapor true
 ```
 
 ### 步骤 6：读取输出，识别编译失败
@@ -191,12 +191,12 @@ module.exports = {
 - [uni-app 自动化测试 API](https://uniapp.dcloud.io/collocation/auto/quick-start)（DCloud 官方）
 - [jest 官方文档](https://www.jestjs.cn/)
 
-**基础示例**（来自 P005，已验证可跑）：
+**基础示例**（已验证可跑）：
 
 ```javascript
 jest.setTimeout(60000)
 
-describe('[P005] 项目测试', () => {
+describe('[<项目代号>] 项目测试', () => {
   let page
 
   beforeAll(async () => {
@@ -245,7 +245,7 @@ describe('[P005] 项目测试', () => {
 
 ```powershell
 # 1. 复制 jest-setup.js
-Copy-Item "<HBuilderX安装目录>\plugins\hbuilderx-ai-chat\uni-agent\knowledges\uni-app-x\samples\hello-uni-app-x\jest-setup.js" "<项目根目录>\jest-setup.js"
+Copy-Item "<HBX_HOME>\plugins\hbuilderx-ai-chat\uni-agent\knowledges\uni-app-x\samples\hello-uni-app-x\jest-setup.js" "<项目根目录>\jest-setup.js"
 
 # 2. jest.config.js 中确保有 setupFilesAfterEnv
 ```
@@ -281,7 +281,7 @@ Copy-Item "<HBuilderX安装目录>\plugins\hbuilderx-ai-chat\uni-agent\knowledge
 
 结果保存在：
 ```
-C:\Users\lichiukenneth\AppData\Roaming\HBuilder X\hbuilderx-for-uniapp-test\<项目名>\android\
+%APPDATA%\HBuilder X\hbuilderx-for-uniapp-test\<项目名>\android\
 ```
 
 文件名为 `ZY<deviceId>-<timestamp>.json`。
@@ -292,13 +292,13 @@ C:\Users\lichiukenneth\AppData\Roaming\HBuilder X\hbuilderx-for-uniapp-test\<项
 
 ```powershell
 # 全部 log
-& "C:\HBuilderX\plugins\launcher-tools\tools\adbs\adb.exe" logcat -d
+& "<HBX_HOME>\plugins\launcher-tools\tools\adbs\adb.exe" logcat -d
 
 # 过滤 plugin:uts 错误
-& "C:\HBuilderX\plugins\launcher-tools\tools\adbs\adb.exe" logcat -d | Select-String -Pattern "plugin:uts"
+& "<HBX_HOME>\plugins\launcher-tools\tools\adbs\adb.exe" logcat -d | Select-String -Pattern "plugin:uts"
 
 # 过滤项目前缀
-& "C:\HBuilderX\plugins\launcher-tools\tools\adbs\adb.exe" logcat -d | Select-String -Pattern "001\.01|013\.01"
+& "<HBX_HOME>\plugins\launcher-tools\tools\adbs\adb.exe" logcat -d | Select-String -Pattern "<任务编号>"
 ```
 
 ## 重要：uni_modules 修改后必须改版本号
@@ -310,16 +310,10 @@ C:\Users\lichiukenneth\AppData\Roaming\HBuilder X\hbuilderx-for-uniapp-test\<项
 - **不要在测试时开 HBuilderX GUI**：同一项目同时只能有一个调试会话，否则端口冲突
 - **使用 PowerShell 或 cmd.exe**：不要用 Git Bash / WSL，会路径解析出错
 
-## 当前环境
-
-| 项目 | 路径 |
-|---|---|
-| P004 | `C:\Users\lichiukenneth\Documents\HBuilderProjects\Learn\xLearnAiP004` |
-| P005 | `C:\Users\lichiukenneth\Documents\HBuilderProjects\Learn\xLearnAiP005` |
-| P006 | `C:\Users\lichiukenneth\Documents\HBuilderProjects\Learn\xLearnAiP006` |
+## 本机环境记录（机器层信息；各机器自行记录，不属于共享层内容）
 
 | 设备 | ID |
 |---|---|
 | Motorola XT2201-2 | `ZY22FCSF4W` |
 
-> 测试结果保存在 `C:\Users\lichiukenneth\AppData\Roaming\HBuilder X\hbuilderx-for-uniapp-test\<project>\android\ZY<deviceId>-<timestamp>.json`
+> 测试结果保存在 `%APPDATA%\HBuilder X\hbuilderx-for-uniapp-test\<project>\android\ZY<deviceId>-<timestamp>.json`

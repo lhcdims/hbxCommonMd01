@@ -37,37 +37,35 @@ Concrete example:
 ### Step 2: Write Prompt File (use OpenClaw `write` tool)
 
 - Tool: `write`
-- Path: `C:\Users\lichiukenneth\.openclaw\workspace\forward-prompt.txt`
+- Path: `<你的 workspace 根目录>\forward-prompt.txt`（用 agent 自己的 workspace 路径；不要写死机器绝对路径）
 - Content: prompt string from Step 1, with `\"` in place of every `"`. Encoding: UTF-8 with BOM.
 
 Do NOT use PS1 string interpolation, here-strings, or Python `open(path,'w')` to write the prompt — all break on quotes or encoding.
 
 ### Step 3: Invoke PS1 (use OpenClaw `exec` tool)
 
-PS1 content (write this EXACTLY to `C:\Users\lichiukenneth\.openclaw\workspace\forward.ps1`):
+PS1 content (write this EXACTLY to `<你的 workspace 根目录>\forward.ps1`):
 
 ```powershell
 param(
-    [ValidateSet('P004', 'P005')]
-    [string]$Project = 'P004'
+    [Parameter(Mandatory=$true)]
+    [string]$ProjectPath
 )
-$map = @{
-    P004 = 'C:\Users\lichiukenneth\Documents\HBuilderProjects\Learn\xLearnAiP004'
-    P005 = 'C:\Users\lichiukenneth\Documents\HBuilderProjects\Learn\xLearnAiP005'
-}
-$promptFromFile = Get-Content "C:\Users\lichiukenneth\.openclaw\workspace\forward-prompt.txt" -Raw
-& 'C:\HBuilderX\cli.exe' uni-agent --prompt $promptFromFile --project $map[$Project] --continue true --output-format stream 2>&1
+# 执行前把 <HBX_CLI> 换成本机 HBuilderX cli.exe 的完整路径
+$cli = '<HBX_CLI>'
+$promptFromFile = Get-Content "$PSScriptRoot\forward-prompt.txt" -Raw
+& $cli uni-agent --prompt $promptFromFile --project $ProjectPath --continue true --output-format stream 2>&1
 ```
 
 Execute:
 
 - Tool: `exec`
-- Command: `powershell -ExecutionPolicy Bypass -File "C:\Users\lichiukenneth\.openclaw\workspace\forward.ps1" -Project P005`
+- Command: `powershell -ExecutionPolicy Bypass -File "<你的 workspace 根目录>\forward.ps1" -ProjectPath "<项目根目录>"`
 - Timeout: 120 seconds (uni-agent response can take 30-90s)
 
-Pass `-Project P005` (or `-Project P004`) as argument — the PS1 uses a param, not hardcoded path.
+Pass `-ProjectPath "<项目根目录>"` as argument — the project root comes from the dispatch brief, never hardcoded. The PS1 uses a param, not a project table.
 
-Do NOT modify any of: `& 'C:\HBuilderX\cli.exe'` (full path required), `--continue true` (Hard rule #0), `2>&1` (stderr capture), or use BAT/CMD wrapper (cmd splits at newlines).
+Do NOT modify any of: `& '<HBX_CLI>'` (full path required), `--continue true` (Hard rule #0), `2>&1` (stderr capture), or use BAT/CMD wrapper (cmd splits at newlines).
 
 ### Step 4: Read Response
 
@@ -80,7 +78,7 @@ If response contains `参数 project 值不能为空`, see Common Errors below.
 After uni-agent reports "done" for any prompt that edited `uni_modules/<plugin>/utssdk/app-android/*.uts`, run compile verification:
 
 ```powershell
-& 'C:\HBuilderX\cli.exe' compile app-android --project 'C:\Users\lichiukenneth\Documents\HBuilderProjects\Learn\xLearnAiP005' --uni_module 'uni_modules/<plugin-name>' 2>&1 | Out-String -Width 4096
+& '<HBX_CLI>' compile app-android --project '<项目根目录>' --uni_module 'uni_modules/<plugin-name>' 2>&1 | Out-String -Width 4096
 ```
 
 - `编译成功` → dispatch next turn or report success
@@ -116,8 +114,8 @@ User 原话 (2026-08-14): "这样你会杀掉我之前的对话". Absolute rule.
 
 1. **Verify HBuilderX session healthy** — Open the HBuilderX GUI window and confirm previous forward's output is visible (not stuck loading). If stuck, ask user to restart HBuilderX GUI.
 2. **Verify mmx-cli quota > 10%** — Run `mmx quota --output json`, parse `model_remains[0].current_interval_remaining_percent`. If ≤ 10%, reply `配额紧张（剩 X%），先不发，5h 重置于 HH:MM UTC+8` and stop.
-3. **Verify project path exists** — Run `Test-Path "C:\Users\lichiukenneth\Documents\HBuilderProjects\Learn\xLearnAiP004"`. Expected: `True`.
-4. **Verify prompt file written correctly** — Run `Get-Content "C:\Users\lichiukenneth\.openclaw\workspace\forward-prompt.txt" -Encoding utf8` and verify content matches prompt with `\"` in place of every `"`.
+3. **Verify project path exists** — Run `Test-Path "<项目根目录>"`. Expected: `True`.
+4. **Verify prompt file written correctly** — Run `Get-Content "<你的 workspace 根目录>\forward-prompt.txt" -Encoding utf8` and verify content matches prompt with `\"` in place of every `"`.
 
 
 ---
@@ -126,9 +124,9 @@ User 原话 (2026-08-14): "这样你会杀掉我之前的对话". Absolute rule.
 
 | Error (exact text) | Cause | Fix |
 |---|---|---|
-| `cli.exe : The term 'cli.exe' is not recognized` | Used `cli.exe` without full path (`cli` alone is PowerShell's `Clear-Item` alias) | Use `& 'C:\HBuilderX\cli.exe' uni-agent ...` with `&` + single-quoted full path |
+| `cli.exe : The term 'cli.exe' is not recognized` | Used `cli.exe` without full path (`cli` alone is PowerShell's `Clear-Item` alias) | Use `& '<HBX_CLI>' uni-agent ...` with `&` + single-quoted full path |
 | `[hbuilderx-ai-chat] 参数 project 值不能为空` | Prompt content contains literal `"` without `\"` escape | Re-do Step 1: replace every `"` with `\"`, re-do Step 2 (overwrite prompt file), re-do Step 3 (re-run PS1) |
-| `The string is missing the terminator: '` (PS1 parse error) | Single quotes in `& 'C:\HBuilderX\cli.exe' ... --project '...' ...` are unbalanced — must be exactly 4 (1 pair around cli.exe path, 1 pair around project path) | Re-write PS1 file with balanced quotes |
+| `The string is missing the terminator: '` (PS1 parse error) | Single quotes in `& '<HBX_CLI>' ... --project '$ProjectPath' ...` are unbalanced — must be exactly 4 (1 pair around cli.exe path, 1 pair around project path) | Re-write PS1 file with balanced quotes |
 | HBuilderX session hangs (no exec output for 60+ seconds) | Session died from previous forward | Ask user to restart HBuilderX GUI (only user can do this) |
 
 
@@ -137,7 +135,7 @@ User 原话 (2026-08-14): "这样你会杀掉我之前的对话". Absolute rule.
 ## Gotchas (key pitfalls, reference)
 
 - **PowerShell auto-escapes `"`**: Write prompt to file via OpenClaw `write` tool (Step 2), have PS1 read it — do not embed prompt in PS1 strings or here-strings
-- **`cli` bare word triggers alias**: PowerShell `Clear-Item` alias matches `cli` — always use `& 'C:\HBuilderX\cli.exe'` with `&` + full path
+- **`cli` bare word triggers alias**: PowerShell `Clear-Item` alias matches `cli` — always use `& '<HBX_CLI>'` with `&` + full path
 - **BAT/CMD splits at newlines**: Direct PS1 invocation only; no `cmd /c bat.bat` wrappers
 - **User refuses HBuilderX GUI compile output** (2026-09-07, 3 times): Always use `cli compile` (Post-Dispatch step) instead of asking user to read GUI output
 - **Quota gate**: `mmx quota --output json` → `model_remains[0].current_interval_remaining_percent` ≤ 10% → refuse forward; see `references/quota-gate.md` for background

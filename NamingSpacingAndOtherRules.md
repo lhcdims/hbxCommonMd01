@@ -84,7 +84,7 @@ A2.1 请【尽量】让每一个段落，都有【命名】。这种命名方式
 
 
 
-A2.2 本文档是 workspace 通用 OpenClaw（PM）记忆。P004 项目的 OpenClaw 记忆应放 `<P004项目根目录>\\openclaw\\MEMORY\_share.md`（user 2026-08-24 拍板；2026-08-26 rename 為 MEMORY\_share.md 以避免命名混淆；2026-08-28 强调：\*\*完整絕對路徑 = 辦公室 `C:\\Users\\lichiukenneth\\Documents\\HBuilderProjects\\Learn\\xLearnAiP004\\openclaw\\MEMORY\_share.md` / 老家 `D:\\uniapp\\xLearnAiP004\\openclaw\\MEMORY\_share.md` / 機房 `D:\\uniapp\\uniappx\\xLearnAiP004\\openclaw\\MEMORY\_share.md`\*\*；三路徑詳見 P004 MEMORY\_share.md D1。⚠️ \*\*`workspace\\P004\\openclaw\\` 是錯位置\*\* — 其他 OpenClaw 龍蝦看不見，只能 sync 通過 git 在項目 source tree 內；2026-08-28 PM 親犯過，已 merge 修正）
+A2.2 记忆分层规矩：跨项目通用的记忆放共享层 hbxCommonMd01；与某个具体项目相关的记忆放该项目自己的文件夹内（该项目根目录下的 `openclaw\\MEMORY\_share.md`，一律用相对于项目根的路径，禁止写机器绝对路径）。共享层不得出现任何具体项目的名称、路径、状态或进度。
 
 
 
@@ -94,21 +94,21 @@ A2.3 记忆不重复，使用 reference 取代 copy/paste（2026-08-26 11:14 use
 
 （補充資料）
 
-\- 背景（user 原话）：「写进 p004 的 MEMORY.md，需要在你自己的 MEMORY.md 重复吗？这样会不会浪费 token？」
+\- 背景（user 原话）：「写进某个项目的 MEMORY.md，需要在你自己的 MEMORY.md 重复吗？这样会不会浪费 token？」
 
-\- 規則：跨層記憶不重複內容，用 reference 取代
+\- 规则：跨层记忆不重复内容，用 reference 取代
 
-\- 範例：`<P004项目根目录>\\openclaw\\MEMORY\_share.md` 引用 workspace MEMORY.md D3.x 時，寫「見 workspace/MEMORY.md D3.9」而非整段複製
+\- 範例：某项目的 `openclaw\\MEMORY\_share.md` 引用共享层 `Md\\common\\CommonAgents.md` 的某一条时，写「见 hbxCommonMd01/Md/common/CommonAgents.md 某条」而非整段复制
 
-\- ⚠️ 路徑規則：所有 P004-related reference 一律用 `<P004项目根目录>` 完整絕對路徑（per A2.2 三路徑），不准寫 `P004/openclaw/...` 模糊 reference — 因為這個路徑在 workspace 內根本看不見（其他龍蝦 sync 不到，2026-08-28 user 拍板強調）
+\- ⚠️ 路徑規則：引用某项目一律用「相对于该项目根目录」的路径（例如 `openclaw\\MEMORY\_share.md`），不准写模糊 reference（如 `某项目/openclaw/...`）— 因为模糊路径在 workspace 内根本看不见（其他机器 sync 不到，2026-08-28 user 拍板強調）
 
 \- 理由：❌ 重複會浪費 token（每次 session load 都付費）❌ 兩邊容易不同步 ❌ 路徑不明確會導致 PM 寫到錯位置（2026-08-28 PM 親犯過）
 
-\- ✅ single source of truth：workspace MEMORY.md 是通用 PM 紀律的唯一出處
+\- ✅ single source of truth：共享层 hbxCommonMd01 是通用 PM 紀律的唯一出處
 
-\- ✅ project MEMORY\_share.md 只放 project 專屬內容 + reference 到 workspace
+\- ✅ 各项目的 MEMORY\_share.md 只放该项目專屬內容 + reference 到共享层
 
-\- 應用場景：P004、未來其他項目（每個項目的 openclaw/MEMORY.md 都應遵守）
+\- 应用场景：所有项目（每个项目的 openclaw/MEMORY\_share.md 都应遵守）
 
 
 
@@ -126,25 +126,25 @@ B. 本文档介绍
 
 
 
-B1. 本文档是这台电脑 workspace 通用 OpenClaw（PM）记忆文档，跨会话保留
+B1. 本文档是共享层 hbxCommonMd01 的命名与隔行规矩文档，跨机器、跨项目通用
 
 
 
 
 
-B2. 内容範圍：OwnerTgHk 信息、角色定位、PM 鐵律、OpenClaw 运维、minimax 配额、本机配置 / user 偏好、調試歷史、通用 skill 引用
+B2. 内容範圍：命名规矩、隔行规矩、记忆分层规矩。⚠️ 共享层不得写入任何具体项目信息（名称、路径、状态、进度），也不得写入机器绝对路径。
 
 
 
 
 
-B3. ⚠️ P004 项目的 OpenClaw 记忆不在这里！去 `<P004项目根目录>\\openclaw\\MEMORY\_share.md` 找（per A2.2 辦公室 `C:\\Users\\lichiukenneth\\Documents\\HBuilderProjects\\Learn\\xLearnAiP004\\openclaw\\MEMORY\_share.md`）
+B3. ⚠️ 任何具体项目的 OpenClaw 记忆都不在这里！到该项目自己的文件夹内找（路径规则见 A2.2）。
 
 
 
 
 
-B4. ⚠️ 更新 P004 相关长期记忆，必须改 `<P004项目根目录>\\openclaw\\MEMORY\_share.md`，不要改这里（user 2026-08-24 拍板；2026-08-28 强调：❌ 禁止创建 `workspace\\P004\\openclaw\\` mirror — 那个位置其他 OpenClaw 龍蝦 sync 不到，是 local artifact）
+B4. ⚠️ 更新某项目的长期记忆时，改该项目文件夹内的 `openclaw\\MEMORY\_share.md`，不要改共享层；❌ 也不要在 workspace 下建任何项目 mirror（那个位置其他机器 sync 不到，是 local artifact）。
 
 
 

@@ -45,7 +45,7 @@ After sending to team-reviewer, team-chief-of-staff does not stop to report to m
 
 Call the `agents_list` tool. It returns only the agents the current agent may delegate to, so main sees `team-chief-of-staff` and team-chief-of-staff sees the leaf agents — route through the chain rather than expecting a direct call to a leaf.
 
-If the target is missing from that list, read `agents.entries` in `C:\Users\lichiukenneth\.openclaw\openclaw.json`; that block holds the exact agent ids, their `subagents.allowAgents`, and the Telegram `bindings`. The id string there is what goes in the session key — do not shorten or rename it.
+If the target is missing from that list, read `agents.entries` in `<OPENCLAW_HOME>\openclaw.json`; that block holds the exact agent ids, their `subagents.allowAgents`, and the Telegram `bindings`. The id string there is what goes in the session key — do not shorten or rename it.
 
 ## Step 2 — Choose the session key
 
