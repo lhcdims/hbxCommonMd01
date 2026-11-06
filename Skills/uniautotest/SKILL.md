@@ -1,119 +1,75 @@
 ---
 name: "uniautotest"
-description: "HBuilderX CLI uni-app x 自动测试：环境准备、cli uniapp.test 执行、编译失败查证、常见卡住根因、调试方法。"
+description: "HBuilderX CLI uni-app x automated testing: environment prerequisites, cli uniapp.test execution, compile failure diagnosis, common hang root causes, and debug methods."
 ---
 
 # UniAutoTest
 
-uni-app x 项目自动测试（CLI）标准流程。
+Automated testing for uni-app x projects via HBuilderX CLI.
 
-## 快速参考
+## 路径代号解析（执行前必做）
 
-### 标准测试命令
-```powershell
-<HBX_CLI> uniapp.test app-android --project "<项目路径>" --vapor true
-```
+本文档中的代号必须在执行前换成本机实际路径：
 
-### 只跑单个测试文件
-在 `jest.config.js` 设置 `testMatch`：
-```js
-module.exports = {
-  testMatch: ['**/autotest/<测试文件名>.test.js'],
-  testTimeout: 60000,
-}
-```
-
-### 测试结果位置
-```
-%APPDATA%\HBuilder X\hbuilderx-for-uniapp-test\<项目名>\android\<device-id>-<timestamp>.json
-```
-
-### 成功输出标志
-```
-Test Suites: 1 passed, 1 total
-Tests:       3 passed, 3 total
-Time:        xx s
-测试用例总计：1，运行通过 1，运行失败 0，运行异常 0
-```
-
----
-
-## 详细流程
+- `<HBX_CLI>` / `<HBX_HOME>`：读 `%USERPROFILE%\.hbx-common.json` 的 `hbxCli` / `hbxHome`
+- `<PROJECT_ROOT>`：当前任务的专案根目录（由派工 brief 指定，不写死）
+- `<OPENCLAW_HOME>`：OpenClaw 状态目录（通常是 `%USERPROFILE%\.openclaw`）
+- `%APPDATA%`：使用者 AppData 目录
 
 ## Trigger
 
-收到「跑测试」「自动测试」「cli uniapp.test」或类似请求时触发。
+User asks to "跑测试", "自动测试", "cli uniapp.test", or similar.
 
-## 前置条件确认
+## Prerequisites
 
-1. 项目已云打包（自定义基座，非本地编译）
-2. 手机已安装该基座，且 USB 调试已连接
-3. **安卓真机和 HBuilderX 所在电脑必须在同一 WiFi 网络下**（否则 sync data 无法建立 WebSocket 通信）
-4. 项目路径存在且可访问
+1. Project has been cloud-packaged (custom test base, not local build)
+2. Phone has the test base installed and USB debugging is connected
+3. **Android device and HBuilderX PC must be on the same WiFi network** (WebSocket sync requires it)
+4. Project path is accessible
 
-## 环境特点
+## Environment
 
-- **测试框架**：`<HBX_HOME>\plugins\hbuilderx-for-uniapp-test-lib\node_modules\jest`
-- **Node 路径**：`<HBX_HOME>\plugins\node\node.exe`
-- **CLI**：`<HBX_CLI>`
-- **项目 node_modules**（如有）会干扰测试，建议删除（见步骤 3）
+- **Test framework**: `<HBX_HOME>\plugins\hbuilderx-for-uniapp-test-lib\node_modules\jest`
+- **Node**: `<HBX_HOME>\plugins\node\node.exe`
+- **CLI**: `<HBX_CLI>`
+- **Project node_modules** (if present) interfere with the test environment — delete before testing (see Step 2)
 
-## 测试命令
-
-**使用 PowerShell**（Windows 推荐）：
+## Test Command (PowerShell)
 
 ```powershell
-# 完整命令
-<HBX_CLI> uniapp.test app-android --project "<项目路径>" --vapor true
-
-# 如果已 cd 到 HBuilderX 安装目录，可以简写
-.\cli.exe uniapp.test app-android --project "<项目路径>" --vapor true
+<HBX_CLI> uniapp.test app-android --project "<PROJECT_ROOT>" --vapor true
 ```
 
-> ⚠️ 使用 **PowerShell** 或 **cmd.exe** 均可，但不要用 Git Bash / WSL，会路径解析出错。
+Do NOT use Git Bash / WSL — path resolution will fail. PowerShell or cmd.exe are both fine.
 
-## 标准流程
+## Standard Workflow
 
-### 步骤 1：确认设备和网络
+### Step 1: Confirm Device and Network
 
 ```powershell
 & "<HBX_HOME>\plugins\launcher-tools\tools\adbs\adb.exe" devices
 ```
 
-确保设备在线，且手机和电脑在同一 WiFi 网络下。
+Device must be online and on the same WiFi as the PC.
 
-### 步骤 2：清理项目的 node_modules（关键）
+### Step 2: Delete Project node_modules (critical)
 
-项目的 `node_modules`、`package.json`、`package-lock.json` 可能包含测试框架依赖（jest、playwright、puppeteer、adbkit 等），会与 HBuilderX CLI 的测试环境冲突，导致 sync data 卡住。
+Project `node_modules`, `package.json`, and `package-lock.json` may contain test framework deps (jest, playwright, puppeteer, adbkit) that conflict with HBuilderX CLI's test environment and cause sync to hang.
 
-**删除顺序：**
-1. 删除 `node_modules` 文件夹
-2. 删除 `package.json`
-3. 删除 `package-lock.json`
+Delete in order:
+1. `node_modules` folder
+2. `package.json`
+3. `package-lock.json`
+
+### Step 3: Confirm main.uts Exists
+
+`main.uts` is the gate file `cli uniapp.test` uses to identify a uni-app-x project. Without it, Jest fails with `Validation Error: Test environment "...environment.js" cannot be found` even if the APK is correctly installed.
 
 ```powershell
-# 在项目根目录执行
-Remove-Item -Recurse -Force "node_modules"
-Remove-Item -Force "package.json"
-Remove-Item -Force "package-lock.json"
+Test-Path "<PROJECT_ROOT>\main.uts"
 ```
 
-### 步骤 3：确认 main.uts 存在（HBuilderX CLI 判断 uni-app-x 的必要文件）
-
-`main.uts` 是 `cli uniapp.test` 的必要文件。`cli uniapp.test` 内部通过 `isUniAppX()` 判断是否为 uni-app-x 项目，同时检查：
-1. `main.uts` 是否存在于项目根目录
-2. `manifest.json` 的 `uni-app-x.vapor == true`
-
-**两者皆需满足**，才会设置 `UNI_APP_X_DOM2: true`、`UNI_APP_X_VAPOR_RENDER_TARGET: "bytecode"`、`UNI_CLI_PATH` → `uniapp-cli-vite`。
-
-**如果 `main.uts` 缺失**：这些环境变量不会被设置，导致 Jest 报 `Validation Error: Test environment "...environment.js" cannot be found`，即使 APK 已正确安装也如此。
-
-**检查**：
-```powershell
-Test-Path "<项目路径>\main.uts"
-```
-
-**如果缺失，创建 `main.uts`**：
+If missing, create it:
 ```uts
 import App from './App.uvue'
 import { createSSRApp } from 'vue'
@@ -123,80 +79,73 @@ export function createApp() {
 }
 ```
 
-### 步骤 4：确认 uni.connectSocket（自定义基座必加）
+### Step 4: Confirm uni.connectSocket (custom base only)
 
-自定义基座的 App，必须在业务逻辑里建立 WebSocket 通信管道，否则 sync data 会卡住。
+Custom test bases must open a WebSocket pipe in the app logic, otherwise sync data hangs.
 
-**检查位置：** `App.uvue` 的 `onLaunch` 或 `onAppShow` lifecycle 里。
+Check in `App.uvue` `onLaunch` or `onAppShow` lifecycle. If missing, add:
 
-**如果缺少，在 App.uvue 的 onLaunch 里加：**
 ```javascript
 onLaunch(() => {
     uni.connectSocket({ url: 'ws://127.0.0.1:0' })
 })
 ```
 
-> 注意：普通基座（未修改的 DCloud 基座）不需要此步骤。
+(Standard DCloud bases do NOT need this.)
 
-### 步骤 5：执行测试
+### Step 5: Run the Test
 
 ```powershell
-# 跑全部测试
-<HBX_CLI> uniapp.test app-android --project "<项目路径>" --vapor true
+<HBX_CLI> uniapp.test app-android --project "<project-root>" --vapor true
 ```
 
-### 步骤 6：读取输出，识别编译失败
+### Step 6: Read Output — Identify Failures
 
-**Every `cli uniapp.test` invocation** — scan the output for these patterns:
+**Every invocation** — scan for these patterns:
 
 | Pattern | Meaning | Action |
 |---|---|---|
-| `kotlin编译失败` | `.uvue` file has Kotlin-incompatible code (e.g., unresolved plugin type references) | Copy error block; report to user with file:line evidence |
-| `发送同步资源数据` followed by **no `automator:runtime connected`** for >30s | App initializes but WebSocket channel never establishes | Run `adb logcat -d \| Select-String "initWebSocket\|crash\|Exception"` to diagnose |
+| `kotlin编译失败` | `.uvue` file has Kotlin-incompatible code (e.g., unresolved plugin type references) | Copy error block with file:line evidence; do NOT retry until .uvue code is fixed |
+| `发送同步资源数据` followed by no `automator:runtime connected` for >30s | App initializes but WebSocket never establishes | Run `adb logcat -d \| Select-String "initWebSocket\|crash\|Exception"` |
 | `Build failed with errors` | Compile stage failed | Same as `kotlin编译失败` |
 
-**Key observed pattern (2026-09-10):** `kotlin编译失败` with `Unresolved reference 'ReadDcimImageResult'` in `pages/index/index.uvue` — the `.uvue` imports a UTS plugin type that Kotlin cannot resolve. This manifests as a hang at "发送同步资源数据" because the app code is fundamentally broken at compile level. **Do not retry `cli uniapp.test` until the `.uvue` code is fixed.**
+**Known pattern (2026-09-10):** `kotlin编译失败` with `Unresolved reference 'ReadDcimImageResult'` in `pages/index/index.uvue` — the `.uvue` imports a UTS plugin type that Kotlin cannot resolve. This hangs at "发送同步资源数据" because the app code is broken at compile level. Do not retry `cli uniapp.test` until the `.uvue` is fixed.
 
-### 步骤 7：等待结果
+### Step 7: Wait for Results
 
-正常输出：
+Normal output:
 ```
 [DONE] Build complete. Watching for changes...
-[connected]              ← 测试框架已连上 App
-[program ready]          ← App 已就绪
-[index.test.js 测试开始！]  ← 测试逻辑开始执行
+[connected]              ← test framework connected to App
+[program ready]          ← App is ready
+[index.test.js 测试开始！] ← test logic starts
 Test Suites: 1 passed, 1 total
 Time: xx s
 ```
 
-## 只跑某个测试文件
+## Running a Specific Test File
 
-在项目根目录新建 `jest.config.js`：
+Create `jest.config.js` in the project root:
 
 ```javascript
-// jest.config.js
 module.exports = {
-  // 只跑指定的测试文件（glob 模式）
-  testMatch: ['**/pages/index/index.test.js'],
-  // 调大超时（默认 30s，测试跑得久可以调大）
+  testMatch: ['**/pages/index/index.test.js'],  // only run this file
   testTimeout: 60000,
 }
 ```
 
-> 注意：加了 `testMatch` 后，只跑匹配的文件，其他测试文件会被忽略。
+## Writing .test.js
 
-## .test.js 怎么写
+Reference:
+- [uni-app automation API](https://uniapp.dcloud.io/collocation/auto/quick-start) (DCloud official)
+- [jest docs](https://jestjs.io/)
 
-参考文档：
-- [uni-app 自动化测试 API](https://uniapp.dcloud.io/collocation/auto/quick-start)（DCloud 官方）
-- [jest 官方文档](https://www.jestjs.cn/)
-
-**基础示例**（已验证可跑）：
+**Example (verified):**
 
 ```javascript
 jest.setTimeout(60000)
 
-describe('[<项目代号>] 项目测试', () => {
+describe('[<project>] 项目测试', () => {
   let page
 
   beforeAll(async () => {
@@ -218,102 +167,99 @@ describe('[<项目代号>] 项目测试', () => {
 })
 ```
 
-**常用 API：**
-- `jest.setTimeout(ms)` — 设置全局超时
-- `describe(name, fn)` — 测试套件分组
-- `beforeAll(fn)` — 所有测试前执行一次
-- `beforeEach(fn)` — 每个测试前执行一次
-- `afterAll(fn)` — 所有测试后执行一次
-- `it(name, fn)` 或 `test(name, fn)` — 单个测试用例
-- `expect(value)` — 断言
-- `program.currentPage()` — 获取当前页面信息
-- `program.navigateTo(options)` — 跳转到指定页面
-- `program.callMethod(name, args)` — 调用 App 内的 method
-- `page.callMethod(name, args)` — 调用当前页面的 method
+**Common APIs:**
+- `jest.setTimeout(ms)` — global timeout
+- `describe(name, fn)` — test suite grouping
+- `beforeAll(fn)` — run once before all tests
+- `beforeEach(fn)` — run before each test
+- `afterAll(fn)` — run once after all tests
+- `it(name, fn)` / `test(name, fn)` — single test case
+- `expect(value)` — assertion
+- `program.currentPage()` — current page info
+- `program.navigateTo(options)` — navigate to a page
+- `program.callMethod(name, args)` — call an App method
+- `page.callMethod(name, args)` — call current page method
 
-## 常见失败模式
+## Common Failures
 
-### program.screenshot() 卡住 / 截图无数据返回
+### program.screenshot() hangs / no data returned
 
-**症状：** `program.screenshot()` 发出后一直收到 pong 心跳，无截图数据，60s 超时。
+**Symptom:** `program.screenshot()` sends pong heartbeats but never returns screenshot data, times out after 60s.
 
-**根因：** 项目缺少 `jest-setup.js` 和 `jest.config.js` 里的 `setupFilesAfterEnv` 注册。
+**Root cause:** Project is missing `jest-setup.js` and `setupFilesAfterEnv` in `jest.config.js`.
 
-**修复步骤：**
-1. 从 hello-uni-app-x 模板复制 `jest-setup.js` 到项目根目录
-2. 在 `jest.config.js` 加入 `setupFilesAfterEnv: ['<rootDir>/jest-setup.js']`
+**Fix:**
+1. Copy `jest-setup.js` from the hello-uni-app-x template to project root:
+   ```
+   Copy-Item "<HBuilderX安装目录>\plugins\hbuilderx-ai-chat\uni-agent\knowledges\uni-app-x\samples\hello-uni-app-x\jest-setup.js" "<项目根目录>\jest-setup.js"
+   ```
+2. In `jest.config.js`, ensure `setupFilesAfterEnv: ['<rootDir>/jest-setup.js']` is set.
 
-```powershell
-# 1. 复制 jest-setup.js
-Copy-Item "<HBX_HOME>\plugins\hbuilderx-ai-chat\uni-agent\knowledges\uni-app-x\samples\hello-uni-app-x\jest-setup.js" "<项目根目录>\jest-setup.js"
+### sync data hangs
 
-# 2. jest.config.js 中确保有 setupFilesAfterEnv
-```
+**Symptom:** `发送同步资源数据` appears then nothing for >30s.
 
-### sync data 卡住
-
-**症状：** `发送同步资源数据` 后无响应，CLI 挂起超时。
-
-**排查顺序：**
-1. 确认手机和电脑在同一 WiFi 网络
-2. 确认 App.uvue 有 `uni.connectSocket`（自定义基座必加）
-3. 确认手机上的基座是最新版本（云打包后需重新安装）
-4. 删除项目的 `node_modules`、`package.json`、`package-lock.json`
+**Troubleshoot in order:**
+1. Confirm device and PC are on the same WiFi
+2. Confirm `App.uvue` has `uni.connectSocket` (custom base)
+3. Confirm the test base on the phone is up to date (reinstall after cloud packaging)
+4. Delete project's `node_modules`, `package.json`, `package-lock.json`
 
 ### Unable to find package
 
-**症状：** log 显示 `Unable to find package: com.xxx.xxx`
+**Symptom:** log shows `Unable to find package: com.xxx.xxx`
 
-**排查：**
-1. 确认手机已安装该 app
-2. 确认 `adb devices` 能看到设备
-3. 确认 app 包名与测试命令中的 `--project` 路径匹配
+**Troubleshoot:**
+1. Confirm app is installed on the device
+2. Confirm `adb devices` shows the device
+3. Confirm app package name matches the `--project` path
 
 ### client connection close: 1006
 
-**症状：** WebSocket 断开，测试框架退出。
+**Symptom:** WebSocket disconnects, test framework exits.
 
-**原因：** App 主动关闭了连接，或 App crash 了。
+**Cause:** App crashed or closed the connection actively.
 
-**排查：** 用 `adb logcat` 读 App 日志确认 crash 原因。
+**Troubleshoot:** Use `adb logcat` to read App logs and find the crash reason.
 
-## 测试结果
+## Test Results
 
-结果保存在：
+Saved to:
 ```
-%APPDATA%\HBuilder X\hbuilderx-for-uniapp-test\<项目名>\android\
+%APPDATA%\HBuilder X\hbuilderx-for-uniapp-test\<project>\android\
 ```
 
-文件名为 `ZY<deviceId>-<timestamp>.json`。
+Filename: `ZY<deviceId>-<timestamp>.json`.
 
-## 调试：读 device log
-
-不触发新编译，直接读取 device 上现有 log：
+## Debug: Read Device Log (no new compile)
 
 ```powershell
-# 全部 log
+# all logs
 & "<HBX_HOME>\plugins\launcher-tools\tools\adbs\adb.exe" logcat -d
 
-# 过滤 plugin:uts 错误
+# filter plugin:uts errors
 & "<HBX_HOME>\plugins\launcher-tools\tools\adbs\adb.exe" logcat -d | Select-String -Pattern "plugin:uts"
 
-# 过滤项目前缀
-& "<HBX_HOME>\plugins\launcher-tools\tools\adbs\adb.exe" logcat -d | Select-String -Pattern "<任务编号>"
+# filter project prefix
+& "<HBX_HOME>\plugins\launcher-tools\tools\adbs\adb.exe" logcat -d | Select-String -Pattern "001\.01|013\.01"
 ```
 
-## 重要：uni_modules 修改后必须改版本号
+## Important: Bump Version After uni_modules Changes
 
-每次修改 `uni_modules` 后重新云打包，必须在 `manifest.json` 里修改版本号（如 `versionName` + `versionCode`），否则手机上的旧基座不会更新，测试会用旧代码跑。
+After modifying `uni_modules` and re-cloud-packaging, increment `versionName` and `versionCode` in `manifest.json`. Otherwise the phone's old base will not update and tests run against stale code.
 
-## 注意事项
+## Notes
 
-- **不要在测试时开 HBuilderX GUI**：同一项目同时只能有一个调试会话，否则端口冲突
-- **使用 PowerShell 或 cmd.exe**：不要用 Git Bash / WSL，会路径解析出错
+- **Do not open HBuilderX GUI for the same project** while testing — only one debug session allowed at a time, port conflicts will occur
+- Use PowerShell or cmd.exe — not Git Bash / WSL
 
-## 本机环境记录（机器层信息；各机器自行记录，不属于共享层内容）
+## Current Environment
 
-| 设备 | ID |
+| Project | Path | Status |
+|---|---|---|
+
+| Device | ID |
 |---|---|
 | Motorola XT2201-2 | `ZY22FCSF4W` |
 
-> 测试结果保存在 `%APPDATA%\HBuilder X\hbuilderx-for-uniapp-test\<project>\android\ZY<deviceId>-<timestamp>.json`
+Test results: `%APPDATA%\HBuilder X\hbuilderx-for-uniapp-test\<project>\android\ZY<deviceId>-<timestamp>.json`

@@ -7,6 +7,15 @@ description: "Delegate work between OpenClaw agents with sessions_send: pick the
 
 Coordinate with another OpenClaw agent over a persistent session with `sessions_send`.
 
+## 路径代号解析（执行前必做）
+
+本文档中的代号必须在执行前换成本机实际路径：
+
+- `<HBX_CLI>` / `<HBX_HOME>`：读 `%USERPROFILE%\.hbx-common.json` 的 `hbxCli` / `hbxHome`
+- `<PROJECT_ROOT>`：当前任务的专案根目录（由派工 brief 指定，不写死）
+- `<OPENCLAW_HOME>`：OpenClaw 状态目录（通常是 `%USERPROFILE%\.openclaw`）
+- `%APPDATA%`：使用者 AppData 目录
+
 ## Trigger
 
 - You must delegate work to another agent and need its answer before you continue.

@@ -7,6 +7,15 @@ description: "Dispatches prompts to HBuilderX uni-agent CLI. After edits to uni_
 
 Forwards `uniagent:`-prefixed user messages (and PM-initiated fix-loop dispatches) to HBuilderX IDE's uni-agent CLI. **`cli.exe` is a deterministic Windows native program** (not AI); n=1 PASS = complete verify.
 
+## 路径代号解析（执行前必做）
+
+本文档中的代号必须在执行前换成本机实际路径：
+
+- `<HBX_CLI>` / `<HBX_HOME>`：读 `%USERPROFILE%\.hbx-common.json` 的 `hbxCli` / `hbxHome`
+- `<PROJECT_ROOT>`：当前任务的专案根目录（由派工 brief 指定，不写死）
+- `<OPENCLAW_HOME>`：OpenClaw 状态目录（通常是 `%USERPROFILE%\.openclaw`）
+- `%APPDATA%`：使用者 AppData 目录
+
 ## Workflow (Step 0 → 4)
 
 ### Step 0: Prepend PM Context Header (REQUIRED — every prompt)
@@ -37,33 +46,31 @@ Concrete example:
 ### Step 2: Write Prompt File (use OpenClaw `write` tool)
 
 - Tool: `write`
-- Path: `<你的 workspace 根目录>\forward-prompt.txt`（用 agent 自己的 workspace 路径；不要写死机器绝对路径）
+- Path: `<OPENCLAW_HOME>\workspace\forward-prompt.txt`
 - Content: prompt string from Step 1, with `\"` in place of every `"`. Encoding: UTF-8 with BOM.
 
 Do NOT use PS1 string interpolation, here-strings, or Python `open(path,'w')` to write the prompt — all break on quotes or encoding.
 
 ### Step 3: Invoke PS1 (use OpenClaw `exec` tool)
 
-PS1 content (write this EXACTLY to `<你的 workspace 根目录>\forward.ps1`):
+PS1 content (write this EXACTLY to `<OPENCLAW_HOME>\workspace\forward.ps1`):
 
 ```powershell
 param(
     [Parameter(Mandatory=$true)]
     [string]$ProjectPath
 )
-# 执行前把 <HBX_CLI> 换成本机 HBuilderX cli.exe 的完整路径
-$cli = '<HBX_CLI>'
-$promptFromFile = Get-Content "$PSScriptRoot\forward-prompt.txt" -Raw
-& $cli uni-agent --prompt $promptFromFile --project $ProjectPath --continue true --output-format stream 2>&1
+$promptFromFile = Get-Content "<OPENCLAW_HOME>\workspace\forward-prompt.txt" -Raw
+& '<HBX_CLI>' uni-agent --prompt $promptFromFile --project $ProjectPath --continue true --output-format stream 2>&1
 ```
 
 Execute:
 
 - Tool: `exec`
-- Command: `powershell -ExecutionPolicy Bypass -File "<你的 workspace 根目录>\forward.ps1" -ProjectPath "<项目根目录>"`
+- Command: `powershell -ExecutionPolicy Bypass -File "<OPENCLAW_HOME>\workspace\forward.ps1" -ProjectPath "<PROJECT_ROOT>"`
 - Timeout: 120 seconds (uni-agent response can take 30-90s)
 
-Pass `-ProjectPath "<项目根目录>"` as argument — the project root comes from the dispatch brief, never hardcoded. The PS1 uses a param, not a project table.
+Pass `-ProjectPath "<PROJECT_ROOT>"` (or `-ProjectPath "<PROJECT_ROOT>"`) as argument — the PS1 uses a param, not hardcoded path.
 
 Do NOT modify any of: `& '<HBX_CLI>'` (full path required), `--continue true` (Hard rule #0), `2>&1` (stderr capture), or use BAT/CMD wrapper (cmd splits at newlines).
 
@@ -78,7 +85,7 @@ If response contains `参数 project 值不能为空`, see Common Errors below.
 After uni-agent reports "done" for any prompt that edited `uni_modules/<plugin>/utssdk/app-android/*.uts`, run compile verification:
 
 ```powershell
-& '<HBX_CLI>' compile app-android --project '<项目根目录>' --uni_module 'uni_modules/<plugin-name>' 2>&1 | Out-String -Width 4096
+& '<HBX_CLI>' compile app-android --project '<PROJECT_ROOT>' --uni_module 'uni_modules/<plugin-name>' 2>&1 | Out-String -Width 4096
 ```
 
 - `编译成功` → dispatch next turn or report success
@@ -110,12 +117,18 @@ User 原话 (2026-08-14): "这样你会杀掉我之前的对话". Absolute rule.
 
 ---
 
-## Pre-flight Checklist (perform IN ORDER)
+## Quota Gate (perform BEFORE every forward)
 
-1. **Verify HBuilderX session healthy** — Open the HBuilderX GUI window and confirm previous forward's output is visible (not stuck loading). If stuck, ask user to restart HBuilderX GUI.
-2. **Verify mmx-cli quota > 10%** — Run `mmx quota --output json`, parse `model_remains[0].current_interval_remaining_percent`. If ≤ 10%, reply `配额紧张（剩 X%），先不发，5h 重置于 HH:MM UTC+8` and stop.
-3. **Verify project path exists** — Run `Test-Path "<项目根目录>"`. Expected: `True`.
-4. **Verify prompt file written correctly** — Run `Get-Content "<你的 workspace 根目录>\forward-prompt.txt" -Encoding utf8` and verify content matches prompt with `\"` in place of every `"`.
+Run `mmx quota --output json` and parse `model_remains[0].current_interval_remaining_percent`:
+- **> 10%** → proceed
+- **≤ 10%** → reply `配额紧张（剩 X%），先不发，5h 重置于 HH:MM UTC+8` and stop
+
+See `references/quota-gate.md` for background on the 5-hour rolling window.
+
+## Pre-flight (only if symptoms appear)
+
+- **HBuilderX session healthy?** Open HBuilderX GUI, confirm previous forward's output is visible. If stuck, ask user to restart HBuilderX GUI.
+- **Project path exists?** `Test-Path "<PROJECT_ROOT>"` → expected `True`.
 
 
 ---
@@ -124,9 +137,9 @@ User 原话 (2026-08-14): "这样你会杀掉我之前的对话". Absolute rule.
 
 | Error (exact text) | Cause | Fix |
 |---|---|---|
-| `cli.exe : The term 'cli.exe' is not recognized` | Used `cli.exe` without full path (`cli` alone is PowerShell's `Clear-Item` alias) | Use `& '<HBX_CLI>' uni-agent ...` with `&` + single-quoted full path |
-| `[hbuilderx-ai-chat] 参数 project 值不能为空` | Prompt content contains literal `"` without `\"` escape | Re-do Step 1: replace every `"` with `\"`, re-do Step 2 (overwrite prompt file), re-do Step 3 (re-run PS1) |
-| `The string is missing the terminator: '` (PS1 parse error) | Single quotes in `& '<HBX_CLI>' ... --project '$ProjectPath' ...` are unbalanced — must be exactly 4 (1 pair around cli.exe path, 1 pair around project path) | Re-write PS1 file with balanced quotes |
+| `cli.exe : The term 'cli.exe' is not recognized` | Used `cli.exe` without full path (`cli` alone is PowerShell's `Clear-Item` alias) | Use `& '<HBX_CLI>'` with `&` + single-quoted full path |
+| `[hbuilderx-ai-chat] 参数 project 值不能为空` | Prompt content contains literal `"` without `\"` escape | Re-do Step 1: replace every `"` with `\"`, re-do Step 2 (overwrite prompt file), re-run PS1 |
+| `The string is missing the terminator: '` (PS1 parse error) | Unbalanced single quotes in PS1 — must be exactly 4 (1 pair around cli.exe path, 1 pair around project path) | Re-write PS1 file with balanced quotes |
 | HBuilderX session hangs (no exec output for 60+ seconds) | Session died from previous forward | Ask user to restart HBuilderX GUI (only user can do this) |
 
 
@@ -138,7 +151,7 @@ User 原话 (2026-08-14): "这样你会杀掉我之前的对话". Absolute rule.
 - **`cli` bare word triggers alias**: PowerShell `Clear-Item` alias matches `cli` — always use `& '<HBX_CLI>'` with `&` + full path
 - **BAT/CMD splits at newlines**: Direct PS1 invocation only; no `cmd /c bat.bat` wrappers
 - **User refuses HBuilderX GUI compile output** (2026-09-07, 3 times): Always use `cli compile` (Post-Dispatch step) instead of asking user to read GUI output
-- **Quota gate**: `mmx quota --output json` → `model_remains[0].current_interval_remaining_percent` ≤ 10% → refuse forward; see `references/quota-gate.md` for background
+
 
 ---
 
