@@ -109,6 +109,14 @@ To let users watch the exchange, put the user plus the main and subordinate bots
 **The target's reply arrives several times.**
 The target's send reported `sentBeforeError: true`, meaning the message was already delivered while the session looked busy, so the target retried. Do not treat a retry as a failure and do not resend from the sender side. If you receive the same reply more than once, count it once and move on.
 
+**An inter-session message arrives with no body.**
+A routed message can arrive containing only temporal context (a date and timezone) with no visible body. This is a delivery artifact, not a new instruction and not a reply to anything. The real body is in the target session's `pendingInputs`, and the same artifact can hit both directions of a pair.
+
+When it happens:
+- Read the real body from the peer's `pendingInputs` (`sessions_history` on the peer session key shows them) and treat that as the message; the empty body carries no instruction.
+- Keep the sent message as it is; the body was delivered.
+- Expect the peer to burn a turn diagnosing it; say in your next message that the body landed, so the peer does not re-derive it.
+
 **`sessions_send` returns `Session creation publication owner is no longer current`.**
 The key shape does not match the target's context. Run `sessions_list` and reuse an existing key for that agent.
 
