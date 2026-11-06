@@ -109,13 +109,21 @@ To let users watch the exchange, put the user plus the main and subordinate bots
 **The target's reply arrives several times.**
 The target's send reported `sentBeforeError: true`, meaning the message was already delivered while the session looked busy, so the target retried. Do not treat a retry as a failure and do not resend from the sender side. If you receive the same reply more than once, count it once and move on.
 
-**An inter-session message arrives with no body.**
-A routed message can arrive containing only temporal context (a date and timezone) with no visible body. This is a delivery artifact, not a new instruction and not a reply to anything. The real body is in the target session's `pendingInputs`, and the same artifact can hit both directions of a pair.
+**An inter-session message arrives with no body, and it keeps coming back.**
+A `sessions_send` with `timeoutSeconds: 900` is a blocking reply-wait. Two things happen, and together they look like a bug:
 
-When it happens:
-- Read the real body from the peer's `pendingInputs` (`sessions_history` on the peer session key shows them) and treat that as the message; the empty body carries no instruction.
-- Keep the sent message as it is; the body was delivered.
-- Expect the peer to burn a turn diagnosing it; say in your next message that the body landed, so the peer does not re-derive it.
+- The receiver gets a routed inter-session message whose body is only the Temporal Context block (date and timezone). The real body lands in the receiver's own `pendingInputs` instead, still in `queued` state.
+- The sender's run stays blocked on that reply-wait. Its transcript ends at the `sessions_send` tool call with no tool result, and its token count freezes.
+
+The loop closes like this: the receiver answers with visible assistant text, which does **not** settle the sender's reply-wait. The sender keeps waiting, re-delivers, and the receiver wakes again on another empty-body message. Each pass costs the receiver a full turn.
+
+Break it:
+
+- The receiver answers with `sessions_send` back to the sender (same session key) and sends **no visible text**. A visible reply is not a reply to a `sessions_send`.
+- The sender replies with `sessions_send` to the receiver and then ends its run, rather than leaving the reply-wait open.
+- Both directions use `sessions_send` for agent-to-agent traffic; neither side substitutes visible text for the reply.
+- To release a run that is already stuck, send with `mode: "followup"` and `timeoutSeconds: 0`: that starts a separate turn without waiting for a reply, and the blocked run is replaced. Verified — the target's `updatedAt` advanced and its pending input moved to `interrupted`.
+- Read the real body from the receiver's `pendingInputs` (`sessions_history` on that session key shows them) and treat it as the message; the empty body carries no instruction.
 
 **`sessions_send` returns `Session creation publication owner is no longer current`.**
 The key shape does not match the target's context. Run `sessions_list` and reuse an existing key for that agent.
