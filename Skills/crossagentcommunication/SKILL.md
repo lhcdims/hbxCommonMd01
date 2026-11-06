@@ -81,6 +81,19 @@ Tool: sessions_send
 }
 ```
 
+### Pick the timeout deliberately
+
+`timeoutSeconds` decides whether the send registers a **reply delivery** — a pending right to receive the target's answer, held on your side until the target answers.
+
+| `timeoutSeconds` | Registers a reply delivery | Use when |
+| ---------------- | -------------------------- | -------- |
+| `900` | yes | You are about to block on the answer and will reply through `sessions_send` too. |
+| `0` | no | You are handing off work, or you only need to wake the target. |
+
+A reply delivery that never settles keeps re-firing: the target's run ends without producing a reply (aborted, stopped, crashed), the pending right stays open, and the Gateway re-announces it on every subsequent turn of the receiving session. The receiver sees a routed message carrying only the Temporal Context block, with the real body sitting in `pendingInputs`, and burns a full turn on each repeat.
+
+So: use `timeoutSeconds: 0` for handoffs and wake-ups. Reserve `900` for a genuine question-and-answer, and make sure you answer through `sessions_send` so the delivery settles. If a peer is stuck this way, abort it and clear both queues as described under Troubleshooting.
+
 ## Step 4 — Continue the same conversation
 
 Call `sessions_send` again with the same `sessionKey`; the target remembers prior context.
