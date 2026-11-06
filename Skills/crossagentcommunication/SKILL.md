@@ -106,6 +106,9 @@ To let users watch the exchange, put the user plus the main and subordinate bots
 
 ## Troubleshooting
 
+**The target's reply arrives several times.**
+The target's send reported `sentBeforeError: true`, meaning the message was already delivered while the session looked busy, so the target retried. Do not treat a retry as a failure and do not resend from the sender side. If you receive the same reply more than once, count it once and move on.
+
 **`sessions_send` returns `Session creation publication owner is no longer current`.**
 The key shape does not match the target's context. Run `sessions_list` and reuse an existing key for that agent.
 
