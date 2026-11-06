@@ -125,6 +125,10 @@ Break it:
 - To release a run that is already stuck on a reply-wait, abort it from the Gateway RPC layer:
   `openclaw gateway call sessions.abort --params '{\"key\":\"<sessionKey>\",\"clearQueued\":true}'`
   On Windows PowerShell the JSON quotes must be backslash-escaped, or the shell eats them and the call fails with `--params must be valid JSON`. On success it returns `{"ok":true,"abortedRunId":"<runId>","status":"aborted"}` and the target session flips to `status: "killed"` with `abortedLastRun: true`. `clearQueued: true` also discards the target's queued followups, which is what stops the re-delivery loop. A `mode: "followup"` send does not release a stuck run — it returns `targetDisposition: "queued"` and waits behind the stuck run, deadlocking against the reply-wait it is waiting on. A `mode: "steer"` send is admitted into the active run and can unblock it cooperatively, but it does not clear the queue.
+
+- Clearing the queue has to happen on **both** sides. Aborting the peer clears the peer's queue but leaves the receiver's own stale entries in place, and the loop keeps running.
+- A pending input that has already been delivered as a turn prompt can still sit in `state = 'queued'` with `consumed_event_id = null`. While it stays there the runtime re-delivers it on every turn, and each re-delivery costs the receiver a full turn. The loop ends only when the queue is emptied.
+- To empty the receiver's own queue without ending the current run, mark those entries `cancelled` in the session store (`session_pending_inputs.state = 'cancelled'`). The supported RPC equivalent is `sessions.abort` with `clearQueued: true`, but that also aborts the caller's own active run, so it fits only when ending the turn is acceptable.
 - Read the real body from the receiver's `pendingInputs` (`sessions_history` on that session key shows them) and treat it as the message; the empty body carries no instruction.
 
 **`sessions_send` returns `Session creation publication owner is no longer current`.**
