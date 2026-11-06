@@ -300,6 +300,9 @@ D3.1 chief-of-staff agent 需要每次修改 todo 文件后，都要修改 D2.1 
 D3.2 main agent 审批时，如果有问题，让 chief-of-staff 修改该 todo 文件。如果没有问题，main agent 修改 D2.2 所述审批日期时间。
 
 
+D3.3 D2.2 是 main agent 的专属字段，chief-of-staff 修改 todo 文件时不得改写或清空 D2.2。如果 main agent 已经审批，chief-of-staff 又要继续修改该文件（包括更新 D2.1 修改日期时间），则原审批立即失效，chief-of-staff 必须回覆 main agent 重新审批，uni-agent 依 D4 判定不通过时不得开始开发。
+
+
 
 D4. uni-agent 读取某 todo 文件，并且开始编程前，必须查看 D2.2 所述审批日期时间，是否大于 D2.1 所述修改日期时间！如果否，请回覆 chief-of-staff，并且不要开始开发！
 
