@@ -122,7 +122,7 @@ Break it:
 - The receiver answers with `sessions_send` back to the sender (same session key) and sends **no visible text**. A visible reply is not a reply to a `sessions_send`.
 - The sender replies with `sessions_send` to the receiver and then ends its run, rather than leaving the reply-wait open.
 - Both directions use `sessions_send` for agent-to-agent traffic; neither side substitutes visible text for the reply.
-- To release a run that is already stuck, send with `mode: "followup"` and `timeoutSeconds: 0`: that starts a separate turn without waiting for a reply, and the blocked run is replaced. Verified — the target's `updatedAt` advanced and its pending input moved to `interrupted`.
+- To release a run that is already stuck on a reply-wait, steer into the active run: `mode: "steer"` with `timeoutSeconds: 0`. Steer is admitted into the running turn instead of queueing behind it, so the stuck run receives the guidance and can end. A `mode: "followup"` send does **not** release a stuck run — it returns `targetDisposition: "queued"` and waits for the stuck run to finish, which deadlocks against the reply-wait it is waiting on.
 - Read the real body from the receiver's `pendingInputs` (`sessions_history` on that session key shows them) and treat it as the message; the empty body carries no instruction.
 
 **`sessions_send` returns `Session creation publication owner is no longer current`.**
