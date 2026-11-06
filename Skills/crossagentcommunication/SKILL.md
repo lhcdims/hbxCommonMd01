@@ -27,22 +27,22 @@ Coordinate with another OpenClaw agent over a persistent session with `sessions_
 
 ```
 sessions_send({
-  sessionKey: "agent:team-chief-of-staff:main",
+  sessionKey: "agent:team-chief-of-staff:telegram:direct:942566572",
   message: "请执行任务",
-  timeoutSeconds: 900  // blocks until the reply arrives
+  timeoutSeconds: 90  // blocks until the reply arrives
 })
 // → returns { status: "ok", reply: "结果" }
 ```
 
-Always send with `timeoutSeconds: 900` (15 min) — a shorter timeout cuts the chain off mid-task and the resend duplicates work. The timeout is a maximum wait, not a delay: the call returns the moment the reply arrives.
+Set `timeoutSeconds: 90` when you are about to block on a genuine answer and will answer back through `sessions_send` too. The timeout is a maximum wait, not a delay: the call returns the moment the reply arrives. For a handoff or a wake-up, omit the field instead — see "Pick the timeout deliberately".
 
 Report only the final result to the user; intermediate status is not reported. If the subordinate asks a question, answer it directly and let the chain continue.
 
 ### Chain example
 
 ```
-main → team-chief-of-staff：请分配任务给 team-reviewer（timeout:900）
-     team-chief-of-staff → team-reviewer：请测试（timeout:900）
+main → team-chief-of-staff：请分配任务给 team-reviewer（timeout:90）
+     team-chief-of-staff → team-reviewer：请测试（timeout:90）
           team-reviewer → team-chief-of-staff：测试完成（chief-of-staff continues）
      team-chief-of-staff → team-reviewer：（next instruction or chain closes）
 team-chief-of-staff → main：任务完成 ✅
@@ -65,7 +65,7 @@ agent:<agent-id>:telegram:direct:<user-id>   e.g. agent:team-reviewer:telegram:d
 agent:<agent-id>:main                          e.g. agent:team-chief-of-staff:main
 ```
 
-Choosing a shape that has no session for that agent creates a duplicate session and the target starts with empty context.
+Choosing a shape that has no session for that agent creates a duplicate session and the target starts with empty context. A Telegram-bound agent must be reached with the `telegram:direct:<user-id>` shape; the `:main` shape opens a different session that the peer never sees.
 
 ## Step 3 — Send, then wait
 
@@ -75,9 +75,9 @@ Use the **identical** `sessionKey` on every message to the same agent — even a
 Tool: sessions_send
 {
   "agentId": "<target-agent-id>",
-  "sessionKey": "agent:<target-agent-id>:main",
+  "sessionKey": "agent:<target-agent-id>:telegram:direct:<user-id>",
   "message": "<your-message-content>",
-  "timeoutSeconds": 900
+  "timeoutSeconds": 90
 }
 ```
 
@@ -91,12 +91,12 @@ Prefer letting the target's run finish on its own. Reach for `sessions.abort` on
 
 | `timeoutSeconds` | Registers a reply delivery | Use when |
 | ---------------- | -------------------------- | -------- |
-| `900` | yes | You are about to block on the answer and will reply through `sessions_send` too. |
-| `0` | no | You are handing off work, or you only need to wake the target. |
+| `90` | yes | You are about to block on the answer and will reply through `sessions_send` too. |
+| omitted | no | You are handing off work, or you only need to wake the target. |
 
 A reply delivery that never settles keeps re-firing: the target's run ends without producing a reply (aborted, stopped, crashed), the pending right stays open, and the Gateway re-announces it on every subsequent turn of the receiving session. The receiver sees a routed message carrying only the Temporal Context block, with the real body sitting in `pendingInputs`, and burns a full turn on each repeat.
 
-So: use `timeoutSeconds: 0` for handoffs and wake-ups. Reserve `900` for a genuine question-and-answer, and make sure you answer through `sessions_send` so the delivery settles. If a peer is stuck this way, abort it and clear both queues as described under Troubleshooting.
+So: **omit the `timeoutSeconds` field** for handoffs and wake-ups. Some dispatch wrappers reject a literal `0` as a non-integer, and omitting the field is the portable way to send without registering a reply delivery. Reserve `90` for a genuine question-and-answer, and make sure you answer through `sessions_send` so the delivery settles. If a peer is stuck this way, abort it and clear both queues as described under Troubleshooting.
 
 ## Step 4 — Continue the same conversation
 
@@ -104,10 +104,10 @@ Call `sessions_send` again with the same `sessionKey`; the target remembers prio
 
 ```
 // Turn 1
-{"agentId": "team-chief-of-staff", "sessionKey": "agent:team-chief-of-staff:main", "message": "Hello, I need information about the weather."}
+{"agentId": "team-chief-of-staff", "sessionKey": "agent:team-chief-of-staff:telegram:direct:942566572", "message": "Hello, I need information about the weather."}
 
 // Turn 2
-{"agentId": "team-chief-of-staff", "sessionKey": "agent:team-chief-of-staff:main", "message": "What about tomorrow?"}
+{"agentId": "team-chief-of-staff", "sessionKey": "agent:team-chief-of-staff:telegram:direct:942566572", "message": "What about tomorrow?"}
 // team-chief-of-staff remembers "weather" context from Turn 1
 ```
 
@@ -126,8 +126,11 @@ To let users watch the exchange, put the user plus the main and subordinate bots
 **The target's reply arrives several times.**
 The target's send reported `sentBeforeError: true`, meaning the message was already delivered while the session looked busy, so the target retried. Do not treat a retry as a failure and do not resend from the sender side. If you receive the same reply more than once, count it once and move on.
 
+**`sessions_send` returns `Session ... changed while starting work` (`SESSION_WORK_START_CHANGED`).**
+The peer session was already running, so no new turn could start for your message. `sentBeforeError: true` in the same result means the body reached the peer anyway: read that peer's `pendingInputs` with `sessions_history` on its `sessionKey`, and if your text is there, stop sending — every retry adds another copy of the same body to that queue. When the peer only needs to know you are alive, deliver it once with `mode: "notify"`, which returns `status: "queued"` with `runStarted: false` and does not wait on the peer's turn.
+
 **An inter-session message arrives with no body, and it keeps coming back.**
-A `sessions_send` with `timeoutSeconds: 900` is a blocking reply-wait. Two things happen, and together they look like a bug:
+A `sessions_send` with `timeoutSeconds: 90` is a blocking reply-wait. Two things happen, and together they look like a bug:
 
 - The receiver gets a routed inter-session message whose body is only the Temporal Context block (date and timezone). The real body lands in the receiver's own `pendingInputs` instead, still in `queued` state.
 - The sender's run stays blocked on that reply-wait. Its transcript ends at the `sessions_send` tool call with no tool result, and its token count freezes.
