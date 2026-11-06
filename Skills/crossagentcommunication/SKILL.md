@@ -83,6 +83,10 @@ Tool: sessions_send
 
 ### Pick the timeout deliberately
 
+A reply delivery settles when the target's run **completes normally** — even one that produced no visible assistant text, in which case the waited send returns `no_reply` and no delivery stays pending. An **aborted** target run leaves the wait open, and the Gateway keeps re-announcing it.
+
+Prefer letting the target's run finish on its own. Reach for `sessions.abort` only when the run is genuinely wedged, and expect an aborted peer to keep re-announcing until a fresh, normally-completed run settles it.
+
 `timeoutSeconds` decides whether the send registers a **reply delivery** — a pending right to receive the target's answer, held on your side until the target answers.
 
 | `timeoutSeconds` | Registers a reply delivery | Use when |
