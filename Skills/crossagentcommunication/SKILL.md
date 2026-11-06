@@ -134,6 +134,8 @@ A `sessions_send` with `timeoutSeconds: 900` is a blocking reply-wait. Two thing
 
 The loop closes like this: the receiver answers with visible assistant text, which does **not** settle the sender's reply-wait. The sender keeps waiting, re-delivers, and the receiver wakes again on another empty-body message. Each pass costs the receiver a full turn.
 
+The repeat deliveries are **steering injections into the receiver's active run**. They never appear in the receiver's transcript — `sessions_history` shows a `messages` array with no inter-session entries, and `transcript_events` has no rows for them either. They land in the live steering queue and surface as turns. That means the loop keeps itself alive as long as the receiving run stays open: **ending the receiving run is what breaks it.** A long assistant turn on the receiving side is the reason the repeats continue, and finishing that turn ends them.
+
 Break it:
 
 - The receiver answers with `sessions_send` back to the sender (same session key) and sends **no visible text**. A visible reply is not a reply to a `sessions_send`.
@@ -158,4 +160,4 @@ The `sessionKey` differed between turns — compare it character by character.
 The target restarted. Start a new collaboration with a fresh key.
 
 **`sessions_send` is not in the tool list.**
-Do not route agent-to-agent traffic through Telegram `message` sends; that publishes the exchange to a chat instead of the target agent.
+Route agent-to-agent traffic through `sessions_send`; a Telegram `message` send publishes the exchange to a chat instead of the target agent.
