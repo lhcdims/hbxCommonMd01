@@ -122,7 +122,9 @@ Break it:
 - The receiver answers with `sessions_send` back to the sender (same session key) and sends **no visible text**. A visible reply is not a reply to a `sessions_send`.
 - The sender replies with `sessions_send` to the receiver and then ends its run, rather than leaving the reply-wait open.
 - Both directions use `sessions_send` for agent-to-agent traffic; neither side substitutes visible text for the reply.
-- To release a run that is already stuck on a reply-wait, steer into the active run: `mode: "steer"` with `timeoutSeconds: 0`. Steer is admitted into the running turn instead of queueing behind it, so the stuck run receives the guidance and can end. A `mode: "followup"` send does **not** release a stuck run — it returns `targetDisposition: "queued"` and waits for the stuck run to finish, which deadlocks against the reply-wait it is waiting on.
+- To release a run that is already stuck on a reply-wait, abort it from the Gateway RPC layer:
+  `openclaw gateway call sessions.abort --params '{\"key\":\"<sessionKey>\",\"clearQueued\":true}'`
+  On Windows PowerShell the JSON quotes must be backslash-escaped, or the shell eats them and the call fails with `--params must be valid JSON`. On success it returns `{"ok":true,"abortedRunId":"<runId>","status":"aborted"}` and the target session flips to `status: "killed"` with `abortedLastRun: true`. `clearQueued: true` also discards the target's queued followups, which is what stops the re-delivery loop. A `mode: "followup"` send does not release a stuck run — it returns `targetDisposition: "queued"` and waits behind the stuck run, deadlocking against the reply-wait it is waiting on. A `mode: "steer"` send is admitted into the active run and can unblock it cooperatively, but it does not clear the queue.
 - Read the real body from the receiver's `pendingInputs` (`sessions_history` on that session key shows them) and treat it as the message; the empty body carries no instruction.
 
 **`sessions_send` returns `Session creation publication owner is no longer current`.**
