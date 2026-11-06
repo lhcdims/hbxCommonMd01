@@ -16,3 +16,11 @@ folder to store the uni-agent md files (uni-agent is an ai agent that helps to m
 
 5. reviewer
 folder to store the reviewer agent md files. A reviewer is use to test and debug a project.  reviewer reports to chief-of-staff.   If you are the reviewer agent(your name may also be team-reviewer), please read all the md files inside this sub-folder now, for all other types of ai agent, you don't have to read them.
+
+6. researcher
+folder to store the researcher agent md files. A researcher gathers and evaluates technical information and produces cited briefs.  researcher reports to chief-of-staff.  If you are the researcher agent(your name may also be team-researcher), please read all the md files inside this sub-folder now, for all other types of ai agent, you don't have to read them.
+
+7. writer
+folder to store the writer agent md files. A writer turns briefs and source material into usable documentation.  writer reports to chief-of-staff.  If you are the writer agent(your name may also be team-writer), please read all the md files inside this sub-folder now, for all other types of ai agent, you don't have to read them.
+
+Note. The delegation chain is main -> chief-of-staff -> researcher / writer / reviewer.  uni-agent is not an openclaw agent; it is the hbuilderx cli agent, invoked by chief-of-staff through the forward-uniagent skill.

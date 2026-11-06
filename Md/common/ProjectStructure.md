@@ -48,7 +48,7 @@ uni-app 插件模块目录。
 
 A2.1.3 md/
 
-项目文档目录，供项目内的 agent 使用。包含 main/、chief-of-staff/、common/、uni-agent/、reviewer/、todo/、knowledgebase/ 等子目录。
+项目文档目录，供项目内的 agent 使用。包含 main/、chief-of-staff/、common/、uni-agent/、researcher/、writer/、reviewer/、todo/、knowledgebase/ 等子目录。
 
 
 
@@ -140,7 +140,23 @@ uni-agent（程序员）专属档案。
 
 
 
-A2.2.5 reviewer/
+A2.2.5 researcher/
+
+researcher agent（调研）专属档案。
+
+
+
+
+
+A2.2.6 writer/
+
+writer agent（文档撰写与非 HBuilderX 项目实现）专属档案。
+
+
+
+
+
+A2.2.7 reviewer/
 
 reviewer（测试）专属档案。
 
@@ -148,7 +164,7 @@ reviewer（测试）专属档案。
 
 
 
-A2.2.6 todo/
+A2.2.8 todo/
 
 工作任务的 md 文件，命名规范为 todo001.md、todo002.md...。
 
@@ -156,7 +172,7 @@ A2.2.6 todo/
 
 
 
-A2.2.7 knowledgebase/
+A2.2.9 knowledgebase/
 
 知识库 md 文件，命名规范为 kb001.md、kb002.md...。
 

@@ -18,7 +18,7 @@ A3. After human ask main agent to do a task, the main agent should first underst
 
 
 
-A4. If the chief-of-staff understand the user requirement, it should create a todo00x.md files, then assign works to the uni-agent
+A4. If the chief-of-staff understand the user requirement, it should create a todo00x.md files, then assign works to the uni-agent.  If the team needs technical facts it does not have yet, assign a research task to the researcher first.  If the task needs user facing documents, assign a writing task to the writer.
 
 
 
@@ -36,6 +36,37 @@ A7. Then the cheif-of-staff should, according to the result of the test, assign 
 
 A8. Our goal is to setup a work flow that can develop apps 24x7 WITHOUT human interactions!  So, for the main agent, please remember, try not to ask the human any technical question, unless you don't know what to do next.
 
+
+
+A9. Task routing rule:
+
+
+
+
+
+A9.1 If the task belongs to an hbuilderx project (uni-app or uni-app x), the programming work is assigned to the uni-agent (through the forward-uniagent skill), and the testing work is assigned to the reviewer.
+
+A9.2 If the task does NOT belong to an hbuilderx project, the uni-agent can not handle it.  The implementation work is assigned to the writer agent, which is a general purpose openclaw agent and can read and write the project files directly.
+
+A9.3 If the task needs technical facts that the team does not have yet, assign a research task to the researcher agent first, then continue with A9.1 or A9.2.
+
+A9.4 Whichever route is chosen, the todo00x.md file must be written and approved by the main agent before the sub-agent starts to work.
+
+
+
+
+
+A10. The chief-of-staff can assign works to three kinds of sub-agents:
+
+
+
+
+
+A10.1 researcher does the research work (collect and evaluate technical information, produce a cited brief).
+
+A10.2 writer does the documentation work, and the implementation work of the projects that are not hbuilderx projects.
+
+A10.3 reviewer does the testing work (maintain and run the test javascript files).
 
 
 
@@ -94,7 +125,7 @@ B2.3 具体来说：main agent 发消息给 chief-of-staff 后，应该【等待
 
 
 
-B3 chief-of-staff 和 sub-agent（uni-agent/reviewer）之间的同步流程
+B3 chief-of-staff 和 sub-agent（uni-agent/researcher/writer/reviewer）之间的同步流程
 
 
 
@@ -106,7 +137,7 @@ B3.2 uni-agent 回复完成后，chief-of-staff 才能继续下一步（分配�
 
 B3.3 reviewer 也是同理：chief-of-staff 发消息给 reviewer 后，必须【等待】reviewer 回复测试结果。
 
-B3.4 整个链条不能断：main → chief-of-staff → uni-agent → reviewer → chief-of-staff → main。
+B3.4 整个链条不能断：main → chief-of-staff → (researcher / writer / uni-agent / reviewer) → chief-of-staff → main。
 
 
 

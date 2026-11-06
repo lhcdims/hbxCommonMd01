@@ -123,3 +123,5 @@ C2.1 一个任务只分配给一个 chief-of-staff。
 C2.2 不重复分配相同任务给多个 chief-of-staff。
 
 C2.3 任务分配时要清晰说明需求和期望结果。
+
+C2.4 main agent 只与 chief-of-staff 沟通，不直接联系 researcher、writer 或 reviewer。
