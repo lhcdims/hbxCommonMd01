@@ -263,3 +263,36 @@ After modifying `uni_modules` and re-cloud-packaging, increment `versionName` an
 | Motorola XT2201-2 | `ZY22FCSF4W` |
 
 Test results: `%APPDATA%\HBuilder X\hbuilderx-for-uniapp-test\<project>\android\ZY<deviceId>-<timestamp>.json`
+
+---
+
+
+## 讀 device log（不觸發新編譯）
+
+### 讀 device 上現有 log（不觸發新編譯）
+
+```powershell
+## 讀 device log（不觸發新編譯）
+& "<HBX_HOME>\plugins\launcher-tools\tools\adbs\adb.exe" logcat -d
+
+## 讀 device log（不觸發新編譯）
+& "<HBX_HOME>\plugins\launcher-tools\tools\adbs\adb.exe" logcat -d | Select-String -Pattern "plugin:uts"
+
+## 讀 device log（不觸發新編譯）
+& "<HBX_HOME>\plugins\launcher-tools\tools\adbs\adb.exe" logcat -d | Select-String -Pattern "001\.01|013\.01"
+
+## 讀 device log（不觸發新編譯）
+& "<HBX_HOME>\plugins\launcher-tools\tools\adbs\adb.exe" logcat -d -t 100
+```
+
+### ❌ 錯誤方式（會觸發新編譯）
+
+- ❌ `node getLogcat.js --mode full`（會觸發完整編譯 + 安裝 APK，浪費 token）
+- ❌ `node getLogcat.js --mode lastBuild`（也會重編譯）
+- ❌ `cli compile app-android`（不是 HBuilderX 終端 log，是 UTS 靜態編譯）
+
+### 什麼時候用
+
+- user 按了按鈕 / HBuilderX 觸發了差量編譯 → 用 `adb logcat -d` 讀結果
+- device 上發生的東西都已經在 buffer 裡，不需要 user 做任何事
+- `adb logcat -d` = dump 既有 buffer（-d = dump），不持續追蹤
